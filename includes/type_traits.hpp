@@ -6,7 +6,7 @@
 /*   By: ktada <ktada@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/25 18:31:18 by ktada             #+#    #+#             */
-/*   Updated: 2022/11/25 23:17:54 by ktada            ###   ########.fr       */
+/*   Updated: 2022/11/25 23:33:45 by ktada            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 #define TYPE_TRAITS_HPP
 
 #include <vector>
+
+#define enable_func_if(bool_val) ft::enable_if<bool_val>* = NULL
 
 //継承　修飾し　public にしないといけない
 //const volatile はconst Tで受け取れるのか
@@ -40,8 +42,7 @@ namespace ft
 	template <class T>
 	struct enable_if<true, T> : public type_class<T> {};
 
-	#define enable_func_if(bool_val) enable_if<bool_val>* = NULL
-
+	
 	//is_same
 	template <class T, class U>
 	struct is_same: public false_type{};
