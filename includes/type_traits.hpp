@@ -6,7 +6,7 @@
 /*   By: ktada <ktada@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/25 18:31:18 by ktada             #+#    #+#             */
-/*   Updated: 2022/11/25 23:33:45 by ktada            ###   ########.fr       */
+/*   Updated: 2022/11/26 00:05:59 by ktada            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,11 +15,11 @@
 
 #include <vector>
 
-#define enable_func_if(bool_val) ft::enable_if<bool_val>* = NULL
+#define enable_func_if(bool_val) ft2::enable_if<bool_val>* = NULL
 
 //継承　修飾し　public にしないといけない
 //const volatile はconst Tで受け取れるのか
-namespace ft 
+namespace ft
 {
 	template <class T, T v>
 	struct integral_constant 
