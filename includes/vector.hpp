@@ -6,7 +6,7 @@
 /*   By: ktada <ktada@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/25 20:04:49 by ktada             #+#    #+#             */
-/*   Updated: 2022/11/28 18:55:35 by ktada            ###   ########.fr       */
+/*   Updated: 2022/11/28 22:11:37 by ktada            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,8 @@
 #include <iostream>
 #include <memory>
 #include <limits>
+#include <exception>
+#include <stdexcept> 
 #include "type_traits.hpp"
 
 namespace ft
@@ -95,7 +97,7 @@ namespace ft
 		//全ての要素がvalueになる
 		void assign( size_type count, const T& value )
 		{
-			reserve_power2(count);
+			resize(count);
 			std::fill(begin_ptr, end_ptr, value);
 		}
 		
@@ -230,35 +232,6 @@ namespace ft
 		{
 			return max_size_;
 		}
-
-		void swap( vector& other )
-		{
-			std::swap(begin_ptr, other.begin_ptr);
-			std::swap(end_ptr, other.end_ptr);
-			std::swap(alloc, other.alloc);
-			std::swap(reserved_end, other.reserved_end);
-		}
-		
-		//capが足りてるなら何もしない
-		//延長された領域にvalueが代入される
-		void resize(size_type size,  T value = T())
-		{
-			size_type pre_size = size();
-			reserve_power2(size);
-			std::fill(begin_ptr + pre_size, end_ptr, value);
-		}
-
-		void clear()
-		{
-			resize(0);
-		}
-
-		size_type capacity() const
-		{
-			if (begin_ptr == nullptr)
-				return 0;
-			return size_type(end_ptr - begin_ptr);
-		}
 		
 		//ちょうどのサイズでメモリを確保する
 		void reserve( size_type new_cap )
@@ -267,8 +240,8 @@ namespace ft
 			if (new_cap <= capacity())
 				return;
 			pointer new_begin_ptr = alloc.allocate(new_cap);
-			pointer new_end_ptr = begin_ptr + new_cap;
-			pointer new_reserved_end = new_end_ptr;
+			pointer new_end_ptr = begin_ptr + size();
+			pointer new_reserved_end = new_cap;
 			//new_cap > capacity()なので、コピーが範囲外に行くことはない
 			if (begin_ptr != nullptr)
 			{
@@ -280,9 +253,137 @@ namespace ft
 			reserved_end = new_end_ptr;
 		}
 		
+		size_type capacity() const
+		{
+			if (begin_ptr == nullptr)
+				return 0;
+			return size_type(end_ptr - begin_ptr);
+		}
+		/////////////////////
+		//modifiers
+		/////////////////////
+		void clear()
+		{
+			resize(0);
+		}
+		
+		iterator insert( const_iterator pos, const T& value )
+		{
+			insert(pos, 1, value);
+		}
+		
+		iterator insert( const_iterator pos, size_type count, const T& value )
+		{
+			size_type pos_idx = pos - begin();
+			move(it(pos_idx), end(), it(pos_idx) + count);
+			std::fill(it(pos_idx), it(pos_idx) + count, value);
+			return insert_pos;
+		}
+		
+		template< class InputIt >
+		typename ft::enable_if<!is_integral<InputIt>::value, iterator>::value_type
+		insert( const_iterator pos, InputIt first, InputIt last )
+		{
+			size_type pos_idx = idx(pos);
+			size_type first_idx = idx(first);
+			size_type last_idx = idx(last);
+			move(it(pos_idx), end(), it(pos_idx) + count);
+			std::copy(it(first_idx), it(last_idx), it(pos_idx));
+			return insert_pos;
+		}
+
+		iterator erase( iterator pos )
+		{
+			return erase(pos, pos + 1);
+		}
+
+		iterator erase( iterator first, iterator last )
+		{
+			size_t	new_size = size() - (last - first);
+			iterator insert_pos = move(last, end(), first);
+			resize(new_size);
+			return insert_pos;
+		}
+
+		void push_back( const T& value )
+		{
+			resize(size() + 1);
+			operator[](size() - 1) = value;
+		}
+
+		//本家が空の時は未定義なのでそのまま返す
+		void pop_back()
+		{
+			if (empty())
+				throw std::exception("can't pop_back when empty elements");
+			resize(size() - 1);	
+		}
+		
+		//capが足りてるなら何もしない
+		//延長された領域にvalueが代入される
+		void resize(size_type size,  T value = T())
+		{
+			size_type pre_size = size();
+			if (pre_size <= size)
+			{
+				reserve_power2(size);
+				end_ptr = begin_ptr + size;
+				std::fill(it(pre_size), end(), value);
+			}
+			else
+			{
+				destroy_range(it(size), end_ptr);
+				end_ptr = it(size);
+			}
+		}
+		
+		void swap( vector& other )
+		{
+			std::swap(begin_ptr, other.begin_ptr);
+			std::swap(end_ptr, other.end_ptr);
+			std::swap(alloc, other.alloc);
+			std::swap(reserved_end, other.reserved_end);
+		}
+
+		/////////////////////
+		//operator
+		/////////////////////
 		
 	private:
 		const size_type max_size_;
+		
+		size_type idx(const iterator &it)
+		{
+			return it - begin();
+		}
+
+		iterator it(size_type idx)
+		{
+			return begin() + idx;
+		}
+
+		void move(iterator to, iteraot from)
+		{
+			alloc.destroy(to);
+			*to = *from;
+			alloc.destroy(from);
+		}
+
+		void move(iterator from_begin, iterator from_end, iterator to_begin)
+		{
+			size_type move_cnt = from_end - from_begin;
+			iterator to_end = to_begin + move_cnt;
+			if (from_begin < to_begin)
+			{
+				for (size_t i = 0; i < move_cnt; i++)
+					move(to_end - i - i, from_end - i - 1);
+			}
+			else if (from_begin > to_begin)
+			{
+				for (size_t i = 0; i < move_cnt; i++)
+					move(to_begin + i, from_begin + i);
+			}
+		}
 		
 		void	calc_max_size()
 		{
@@ -330,19 +431,7 @@ namespace ft
 		void reserve_power2(size_t new_size)
 		{
 			reserve(calc_cap_power2(new_size));
-			end_ptr = begin_ptr + new_size;
 		}
-
-		void fill(const T &val)
-		{
-			for (size_t i = 0; i < count; i++)
-			{
-				/* code */
-			}
-			
-		}
-		
-		
 
 		void init_ptr()
 		{
