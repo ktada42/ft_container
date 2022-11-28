@@ -6,7 +6,7 @@
 /*   By: ktada <ktada@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/25 20:04:49 by ktada             #+#    #+#             */
-/*   Updated: 2022/11/28 22:11:37 by ktada            ###   ########.fr       */
+/*   Updated: 2022/11/28 23:11:24 by ktada            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,6 +90,7 @@ namespace ft
 		vector& operator=( const vector& other )
 		{
 			init_ptr();
+			max_size_ = calc_max_size();
 			assign(other.begin(), other.end());
 		}
 		
@@ -97,15 +98,15 @@ namespace ft
 		//全ての要素がvalueになる
 		void assign( size_type count, const T& value )
 		{
-			resize(count);
-			std::fill(begin_ptr, end_ptr, value);
+			destroy_range(begin(), resize_with_not_fill(count));
+			std::fill(begin(), end(), value);
 		}
 		
 		template< class InputIt >
 		void assign( InputIt first, InputIt last )
 		{
-			resize(last - first);
-			std::uninitialized_copy(first, last, begin_ptr);
+			destroy_range(begin(), resize_with_not_fill(last - first));
+			std::uninitialized_copy(first, last, begin());
 		}
 		
 		allocator_type get_allocator() const
@@ -131,12 +132,12 @@ namespace ft
 
 		reference operator[]( size_type pos )
 		{
-			return begin_ptr[pos];
+			return begin()[pos];
 		}
 
 		const_reference operator[]( size_type pos ) const
 		{
-			return begin_ptr[pos];
+			return begin()[pos];
 		}
 
 		reference front()
@@ -223,7 +224,7 @@ namespace ft
 		
 		size_type size() const
 		{
-			if (begin_ptr == nullptr)
+			if (begin_ptr == NULL)
 				return 0;
 			return (size_type(end_ptr - begin_ptr));
 		}
@@ -240,25 +241,25 @@ namespace ft
 			if (new_cap <= capacity())
 				return;
 			pointer new_begin_ptr = alloc.allocate(new_cap);
-			pointer new_end_ptr = begin_ptr + size();
-			pointer new_reserved_end = new_cap;
-			//new_cap > capacity()なので、コピーが範囲外に行くことはない
-			if (begin_ptr != nullptr)
+			pointer new_end_ptr = new_begin_ptr + size();
+			pointer new_reserved_end = new_begin_ptr + new_cap;
+			if (begin_ptr != NULL)
 			{
+				//new_cap > capacity()なので、コピーが範囲外に行くことはない
 				std::uninitialized_copy(begin_ptr, end_ptr, new_begin_ptr);
 				destroy_allocated();
 			}
 			begin_ptr = new_begin_ptr;
-			end_ptr = new_end_ptr;
-			reserved_end = new_end_ptr;
+			reserved_end = new_reserved_end;
 		}
 		
 		size_type capacity() const
 		{
-			if (begin_ptr == nullptr)
+			if (begin_ptr == NULL)
 				return 0;
 			return size_type(end_ptr - begin_ptr);
 		}
+		
 		/////////////////////
 		//modifiers
 		/////////////////////
@@ -275,8 +276,9 @@ namespace ft
 		iterator insert( const_iterator pos, size_type count, const T& value )
 		{
 			size_type pos_idx = pos - begin();
-			move(it(pos_idx), end(), it(pos_idx) + count);
-			std::fill(it(pos_idx), it(pos_idx) + count, value);
+			resize(size() + count);
+			move(it(pos_idx), end(), it(pos_idx + count) );
+			std::fill(it(pos_idx), it(pos_idx + count), value);
 			return insert_pos;
 		}
 		
@@ -287,6 +289,7 @@ namespace ft
 			size_type pos_idx = idx(pos);
 			size_type first_idx = idx(first);
 			size_type last_idx = idx(last);
+			resize(size() + (last - first));
 			move(it(pos_idx), end(), it(pos_idx) + count);
 			std::copy(it(first_idx), it(last_idx), it(pos_idx));
 			return insert_pos;
@@ -301,7 +304,8 @@ namespace ft
 		{
 			size_t	new_size = size() - (last - first);
 			iterator insert_pos = move(last, end(), first);
-			resize(new_size);
+			//moveによりlast以降はdestroyされているので、resizeを呼ぶ必要はない
+			end_ptr = begin() + new_size;
 			return insert_pos;
 		}
 
@@ -323,18 +327,7 @@ namespace ft
 		//延長された領域にvalueが代入される
 		void resize(size_type size,  T value = T())
 		{
-			size_type pre_size = size();
-			if (pre_size <= size)
-			{
-				reserve_power2(size);
-				end_ptr = begin_ptr + size;
-				std::fill(it(pre_size), end(), value);
-			}
-			else
-			{
-				destroy_range(it(size), end_ptr);
-				end_ptr = it(size);
-			}
+			std::fill(resize_with_not_fill(size), end(), value);
 		}
 		
 		void swap( vector& other )
@@ -351,6 +344,19 @@ namespace ft
 		
 	private:
 		const size_type max_size_;
+
+		//begin() + sizeを返す
+		//std::fill(resize_with_not_fill(), end(), val)で
+		//通常のresizeとして使える
+		iterator resize_with_not_fill(size_type size_)
+		{
+			if (size() <= size_)
+				reserve_power2(size_);
+			else
+				destroy_range(it(size_), end_ptr);
+			end_ptr = begin_ptr + size_;
+			return it(size_);
+		}
 		
 		size_type idx(const iterator &it)
 		{
@@ -372,9 +378,9 @@ namespace ft
 		void move(iterator from_begin, iterator from_end, iterator to_begin)
 		{
 			size_type move_cnt = from_end - from_begin;
-			iterator to_end = to_begin + move_cnt;
 			if (from_begin < to_begin)
 			{
+				iterator to_end = to_begin + move_cnt;
 				for (size_t i = 0; i < move_cnt; i++)
 					move(to_end - i - i, from_end - i - 1);
 			}
