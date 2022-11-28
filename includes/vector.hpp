@@ -6,7 +6,7 @@
 /*   By: ktada <ktada@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/25 20:04:49 by ktada             #+#    #+#             */
-/*   Updated: 2022/11/28 18:24:45 by ktada            ###   ########.fr       */
+/*   Updated: 2022/11/28 18:55:35 by ktada            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,41 +19,6 @@
 #include <limits>
 #include "type_traits.hpp"
 
-/*
-Member type	Definition
-value_type	T
-allocator_type	Allocator
-size_type	Unsigned integer type (usually std::size_t)
-difference_type	Signed integer type (usually std::ptrdiff_t)
-reference	value_type&
-const_reference	const value_type&
-pointer	 
-Allocator::pointer	(until C++11)
-std::allocator_traits<Allocator>::pointer	(since C++11)
- 
-const_pointer	 
-Allocator::const_pointer	(until C++11)
-std::allocator_traits<Allocator>::const_pointer	(since C++11)
- 
-iterator	 
-LegacyRandomAccessIterator and LegacyContiguousIterator to value_type
-
-(until C++20)
-LegacyRandomAccessIterator, contiguous_iterator, and ConstexprIterator to value_type
-
-(since C++20)
- 
-const_iterator	 
-LegacyRandomAccessIterator and LegacyContiguousIterator to const value_type
-
-(until C++20)
-LegacyRandomAccessIterator, contiguous_iterator, and ConstexprIterator to const value_type
-
-(since C++20)
- 
-reverse_iterator	std::reverse_iterator<iterator>
-const_reverse_iterator	std::reverse_iterator<const_iterator>
-*/
 namespace ft
 {
 	template <class T, class Allocator = std::allocator<T>>	
@@ -76,13 +41,13 @@ namespace ft
 
 #define size_t cant_use
 	//constructors
-		vector() : alloc(allocator_type())
+		vector() : alloc(allocator_type()), max_size_(calc_max_size())
 		{
 			init_ptr();
 			assign(0);//todo?
 		}
 		
-		explicit vector( const allocator_type& alloc ) : alloc(alloc)
+		explicit vector( const allocator_type& alloc ) : alloc(alloc), max_size_(calc_max_size())
 		{
 			init_ptr();
 			assign(0);	
@@ -90,7 +55,7 @@ namespace ft
 
 		explicit vector(size_type count,
                  		const T& value = T(),
-                 		const allocator_type& alloc = allocator_type()) : alloc(alloc)
+                 		const allocator_type& alloc = allocator_type()) : alloc(alloc), max_size_(calc_max_size())
 		{
 			init_ptr();
 			assign(count, value);
@@ -98,14 +63,14 @@ namespace ft
 		
 		template< class InputIt >
 		vector( InputIt first, InputIt last,
-				const allocator_type& alloc = allocator_type() ) : alloc(alloc)
+				const allocator_type& alloc = allocator_type() ) : alloc(alloc), max_size_(calc_max_size())
 		{
 			init_ptr();
 			assign(first, last);
 		}
 		
 		
-		vector( const ft::vector& other ) : alloc(allocator_type())
+		vector( const ft::vector& other ) : alloc(allocator_type()), max_size_(calc_max_size())
 		{
 			init_ptr();
 			assign(other.begin(), other.end());
@@ -146,6 +111,126 @@ namespace ft
 			return alloc;
 		}
 
+		
+		//////////////////
+		//Element access
+		//////////////////
+		reference at( size_type pos )
+		{
+			chek_out_of_range(pos);
+			return operator[](pos);
+		}
+
+		const_reference at( size_type pos ) const
+		{
+			check_out_of_range(pos);
+			return operator[](pos);
+		}
+
+		reference operator[]( size_type pos )
+		{
+			return begin_ptr[pos];
+		}
+
+		const_reference operator[]( size_type pos ) const
+		{
+			return begin_ptr[pos];
+		}
+
+		reference front()
+		{
+			return operator[](0);	
+		}
+
+		const_reference front() const
+		{
+			return operator[](0);	
+		}
+
+		reference back()
+		{
+			return operator[](size() - 1);	
+		}
+
+		const_reference back() const
+		{
+			return operator[](size() - 1);	
+		}
+
+		value_type* data()
+		{
+			return begin_ptr;
+		}
+		
+		const value_type* data() const
+		{
+			return begin_ptr;
+		}
+
+
+		/////////////////
+		//iterators
+		/////////////////
+		iterator begin()
+		{
+			return begin_ptr;
+		}
+		
+		const_iterator begin() const
+		{
+			return begin_ptr;
+		}
+
+		iterator end()
+		{
+			return end_ptr;
+		}
+
+		const_iterator end() const
+		{
+			return end_ptr;
+		}
+
+		reverse_iterator rbegin()
+		{
+			return reverse_iterator(end_ptr);
+		}
+
+		const_reverse_iterator rbegin() const
+		{
+			return reverse_iterator(end_ptr);
+		}
+		
+		reverse_iterator rend()
+		{
+			return reverse_iterator(begin_ptr);
+		}
+
+		const_reverse_iterator rend() const
+		{
+			return reverse_iterator(begin_ptr);
+		}
+
+		/////////////////
+		//Capacity
+		/////////////////
+		bool empty() const
+		{
+			return size() == 0;
+		}
+		
+		size_type size() const
+		{
+			if (begin_ptr == nullptr)
+				return 0;
+			return (size_type(end_ptr - begin_ptr));
+		}
+		
+		size_type max_size() const
+		{
+			return max_size_;
+		}
+
 		void swap( vector& other )
 		{
 			std::swap(begin_ptr, other.begin_ptr);
@@ -170,14 +255,15 @@ namespace ft
 
 		size_type capacity() const
 		{
+			if (begin_ptr == nullptr)
+				return 0;
 			return size_type(end_ptr - begin_ptr);
 		}
 		
 		//ちょうどのサイズでメモリを確保する
 		void reserve( size_type new_cap )
 		{
-			if (new_cap > max_size)
-				throw_length_error();
+			check_capacity_size(new_cap);
 			if (new_cap <= capacity())
 				return;
 			pointer new_begin_ptr = alloc.allocate(new_cap);
@@ -193,21 +279,23 @@ namespace ft
 			end_ptr = new_end_ptr;
 			reserved_end = new_end_ptr;
 		}
-
-		size_type max_size() const
-		{
-			return std::min(
-                	static_cast<size_type>(std::numeric_limits<difference_type>::max()),
-					alloc.max_size());
-		}
 		
-		size_type size() const
-		{
-			return (size_type(end_ptr - begin_ptr));
-		}
 		
 	private:
 		const size_type max_size_;
+		
+		void	calc_max_size()
+		{
+			return std::min(static_cast<size_type>(
+								std::numeric_limits<difference_type>::max() / sizeof(value_type)),
+								alloc_.max_size());
+		}
+		
+		void check_out_of_range(size_type pos)
+		{
+			if (pos >= size())
+				std::out_of_range();
+		}
 		
 		void destroy_allocated()
 		{
@@ -221,22 +309,21 @@ namespace ft
 				alloc.destroy(begin++);
 		}
 
-		void throw_length_error()
+		void check_capacity_size(size_type cap)
 		{
-			throw std::length_error("allocate");
+			if (cap > max_size)
+				throw std::length_error("allocate");
 		}
 		
 		size_type calc_cap_power2(size_type size)
 		{
-			if (size > max_size())
-				throw_length_error();
+			check_capacity_size(size);
 			if (size == 0)
 				return 0;
 			size_type new_cap = 1;
 			while(new_cap < size)
 				new_cap <<= 1;
-			if (new_cap > max_size())
-				throw_length_error();
+			check_capacity_size(new_cap);
 			return new_cap;
 		}
 
@@ -263,7 +350,8 @@ namespace ft
 			end_ptr = NULL;
 			reserved_end = NULL;
 		}
-
+	private:
+		size_type		max_size_;
 	protected:
 		pointer			begin_ptr;
 		pointer			end_ptr;
