@@ -6,7 +6,7 @@
 /*   By: ktada <ktada@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/25 18:31:18 by ktada             #+#    #+#             */
-/*   Updated: 2022/11/26 00:05:59 by ktada            ###   ########.fr       */
+/*   Updated: 2022/11/26 22:03:18 by ktada            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ namespace ft
 	template <class T> 
 	struct type_class {typedef T type;};
 
-	//enable_if
+	//ok enable_if 
 	template <bool, class T = void>
 	struct enable_if {};
 
@@ -43,7 +43,7 @@ namespace ft
 	struct enable_if<true, T> : public type_class<T> {};
 
 	
-	//is_same
+	//ok is_same
 	template <class T, class U>
 	struct is_same: public false_type{};
 
@@ -67,7 +67,7 @@ namespace ft
 	template <class T> 
 	struct remove_cv:public type_class<typename remove_volatile<typename remove_const<T>::type>::type>{};
 
-	//is_integral
+	//ok is_integral
 	template <class T> 
 	struct _is_integral: public false_type{};
  

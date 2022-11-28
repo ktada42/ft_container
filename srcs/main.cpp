@@ -1,9 +1,10 @@
 #include <iostream>
 #include "type_traits.hpp"
 //#include "vector.hpp"
+#include <vector>
 
 template<class T>
-typename ft::enable_if<!ft::is_integral<T>::value, void>::type print_type(T a)
+typename ft::enable_if<!ft::is_same<T, int>::value, void>::type print_type(T a)
 {
 	(void)a;
 	std::cout << "not integral" << std::endl;
@@ -11,7 +12,7 @@ typename ft::enable_if<!ft::is_integral<T>::value, void>::type print_type(T a)
 }
 
 template<class T>
-typename ft::enable_if<ft::is_integral<T>::value, void>::type print_type(T a)
+typename ft::enable_if<ft::is_same<T, int>::value, void>::type print_type(T a)
 {
 	(void)a;
 	std::cout << "integral" << std::endl;
@@ -25,9 +26,6 @@ void type_traits_test()
 
 int main()
 {
-	type_traits_test();
-
-	print_type(0);
-	print_type((double)0);
+	std::vector<int> a;
 	return 0;
 }
