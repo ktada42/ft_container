@@ -6,7 +6,7 @@
 #    By: ktada <ktada@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/10/19 02:41:21 by ktada             #+#    #+#              #
-#    Updated: 2022/11/25 23:58:19 by ktada            ###   ########.fr        #
+#    Updated: 2022/11/28 15:20:10 by ktada            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,7 +14,7 @@ SRCS		= srcs/main.cpp
 OBJ_DIR = ./obj
 OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:%.cpp=%.o))
 CXX			= c++
-CXXFLAGS	= -std=c++98 -Wall -Wextra -Werror -Wconversion
+CXXFLAGS	= -std=c++98 -Wall -Wextra -Werror
 RM			= rm -f
 RM_DIR 		= rm -rf
 NAME		= a.out
